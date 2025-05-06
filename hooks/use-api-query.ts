@@ -8,6 +8,7 @@ interface UseApiQueryOptions<TData, TBody = unknown>
   method?: HttpMethod;
   body?: TBody;
   isProtected?: boolean;
+  enabled?: boolean;
 }
 
 export const useApiQuery = <TData, TBody = unknown>(
@@ -18,6 +19,7 @@ export const useApiQuery = <TData, TBody = unknown>(
     method = "GET",
     body,
     isProtected = false,
+    enabled = true,
     ...queryOptions
   } = options;
 
