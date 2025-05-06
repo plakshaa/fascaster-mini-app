@@ -85,8 +85,8 @@ export async function POST(request: Request) {
         await setUserNotificationDetails(fid, event.notificationDetails);
         await sendFrameNotification({
           fid,
-          title: `Welcome to Base Minikit Starter`,
-          body: `Thank you for adding Base Minikit Starter`,
+          title: `Welcome to Farcaster Mini App Template`,
+          body: `Thank you for adding Farcaster Mini App Template`,
         });
       } else {
         await deleteUserNotificationDetails(fid);
@@ -103,8 +103,8 @@ export async function POST(request: Request) {
       await setUserNotificationDetails(fid, event.notificationDetails);
       await sendFrameNotification({
         fid,
-        title: `Welcome to Base Minikit Starter`,
-        body: `Thank you for enabling notifications for Base Minikit Starter`,
+        title: `Welcome to Farcaster Mini App Template`,
+        body: `Thank you for enabling notifications for Farcaster Mini App Template`,
       });
 
       break;

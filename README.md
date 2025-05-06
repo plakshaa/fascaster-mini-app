@@ -1,10 +1,8 @@
-# Farcaster Mini App Template w/ Base MiniKit
+# Farcaster Mini App Template
 
-This is a [Next.js](https://nextjs.org) starter kit bootstrapped from [Mini App Next Template](https://github.com/builders-garden/miniapp-next-template)
+This is a [Next.js](https://nextjs.org) starter kit to boostrap your Farcaster Mini App
 
-- [MiniKit](https://docs.base.org/builderkits/minikit/overview)
 - [Farcaster Mini Apps](https://miniapps.xyz)
-- [OnchainKit Documentation](https://docs.base.org/builderkits/onchainkit/getting-started)
 - [Tailwind CSS](https://tailwindcss.com)
 - [Next.js](https://nextjs.org/docs)
 - [Neynar](https://neynar.com)
@@ -34,7 +32,6 @@ The environment variables enable the following features:
 ```bash
 # Required for Frame metadata
 NEXT_PUBLIC_URL=
-NEXT_PUBLIC_MINIKIT_PROJECT_ID=
 
 # Required to allow users to add your frame
 NEXT_PUBLIC_FARCASTER_HEADER=
@@ -80,14 +77,13 @@ npm run dev
 - Ready-to-use notification endpoints in `api/notify` and `api/webhook`
 - Notification client utilities in `lib/notification-client.ts`
 
-### MiniKit Provider
+### MiniApp Provider
 
-The app is wrapped with `MiniKitProvider` in `providers.tsx`, configured with:
+The app is wrapped with `MiniAppProvider` in `providers.tsx`, configured with:
 
-- OnchainKit integration
-- Access to Frames context
+- Access to Mini App context
 - Sets up Wagmi Connectors
-- Sets up Frame SDK listeners
+- Sets up Mini App SDK listeners
 - Applies Safe Area Insets
 
 ### Dynamic Preview Images
@@ -97,8 +93,6 @@ The app is wrapped with `MiniKitProvider` in `providers.tsx`, configured with:
 
 ## Learn More
 
-- [MiniKit Documentation](https://docs.base.org/builderkits/minikit/overview)
-- [OnchainKit Documentation](https://docs.base.org/builderkits/onchainkit/getting-started)
 - [Farcaster Mini Apps](https://miniapps.xyz)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)

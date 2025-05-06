@@ -3,12 +3,15 @@
 import { useSignIn } from "@/hooks/use-sign-in";
 import Image from "next/image";
 import { useState } from "react";
+import { useAccount } from "wagmi";
 
 export default function Home() {
   const { signIn, isLoading, isSignedIn, user } = useSignIn({
     autoSignIn: true,
   });
   const [testResult, setTestResult] = useState<string>("");
+
+  const { address } = useAccount();
 
   const testAuth = async () => {
     try {
@@ -37,6 +40,13 @@ export default function Home() {
         <h1 className="text-4xl font-bold">Welcome</h1>
         <p className="text-lg text-muted-foreground">
           {isSignedIn ? "You are signed in!" : "Sign in to get started"}
+        </p>
+        <p className="text-lg text-muted-foreground">
+          {address
+            ? `${address.substring(0, 6)}...${address.substring(
+                address.length - 4
+              )}`
+            : "No address found"}
         </p>
 
         {!isSignedIn ? (

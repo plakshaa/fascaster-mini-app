@@ -8,6 +8,8 @@ export const POST = async (req: NextRequest) => {
   let { fid, signature, message } = await req.json();
   const user = await fetchUser(fid);
 
+  console.log("user", user);
+
   // Verify signature matches custody address
   const isValidSignature = await verifyMessage({
     address: user.custody_address as `0x${string}`,
@@ -18,6 +20,8 @@ export const POST = async (req: NextRequest) => {
   if (!isValidSignature) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
+
+  console.log("isValidSignature", isValidSignature);
 
   // Generate JWT token
   const secret = new TextEncoder().encode(env.JWT_SECRET);
