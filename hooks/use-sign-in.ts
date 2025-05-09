@@ -4,11 +4,24 @@ import { NeynarUser } from "@/lib/neynar";
 import { sdk } from "@farcaster/frame-sdk";
 import { useCallback, useEffect, useState } from "react";
 import { useApiMutation } from "./use-api-mutation";
+import { useApiQuery } from "./use-api-query";
+import { useAuthCheck } from "./use-auth-check";
 
 export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
   const { context } = useMiniApp();
+  const { data: authCheck, isLoading: isCheckingAuth } = useAuthCheck();
+  const {
+    data: user,
+    isLoading: isLoadingNeynarUser,
+    refetch: refetchUser,
+  } = useApiQuery<NeynarUser>({
+    url: "/api/users/me",
+    method: "GET",
+    isProtected: true,
+    queryKey: ["user"],
+    enabled: !!authCheck,
+  });
 
-  const [user, setUser] = useState<NeynarUser | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +39,6 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
     method: "POST",
     body: (variables) => variables,
     onSuccess: (data) => {
-      setUser(data.user);
       setIsSignedIn(true);
     },
     onError: (err) => {
@@ -68,6 +80,8 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
         fid: context.user.fid,
         referrerFid,
       });
+
+      refetchUser();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Sign in failed";
@@ -76,19 +90,24 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [context, signIn]);
+  }, [context, signIn, authCheck, isCheckingAuth, refetchUser]);
 
   useEffect(() => {
     // if autoSignIn is true, sign in automatically on mount
     if (autoSignIn) {
-      handleSignIn();
+      if (authCheck && !isCheckingAuth) {
+        setIsSignedIn(true);
+        refetchUser();
+      } else if (!authCheck && !isCheckingAuth) {
+        handleSignIn();
+      }
     }
-  }, [autoSignIn, handleSignIn]);
+  }, [autoSignIn, handleSignIn, authCheck, isCheckingAuth, refetchUser]);
 
   return {
     signIn: handleSignIn,
     isSignedIn,
-    isLoading: isLoading || isPending,
+    isLoading: isLoading || isPending || isCheckingAuth,
     error,
     user,
   };
