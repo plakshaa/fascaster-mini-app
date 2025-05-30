@@ -63,6 +63,7 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
         expirationTime: new Date(
           Date.now() + MESSAGE_EXPIRATION_TIME
         ).toISOString(),
+        acceptAuthAddress: true,
       });
 
       if (!result) {
