@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApiMutation } from "./use-api-mutation";
 import { useApiQuery } from "./use-api-query";
 import { useAuthCheck } from "./use-auth-check";
+import { useAccount } from "wagmi";
 
 export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
   const { context } = useMiniApp();
@@ -25,6 +26,7 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { address } = useAccount();
 
   const { mutate: signIn, isPending } = useApiMutation<
     { user: NeynarUser },
@@ -33,6 +35,7 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
       message: string;
       fid: number;
       referrerFid: number | null;
+      address: string;
     }
   >({
     url: "/api/auth/sign-in",
@@ -80,6 +83,7 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
         message: result.message,
         fid: context.user.fid,
         referrerFid,
+        address: address ?? "",
       });
 
       refetchUser();

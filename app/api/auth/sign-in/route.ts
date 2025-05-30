@@ -5,12 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyMessage } from "viem";
 
 export const POST = async (req: NextRequest) => {
-  let { fid, signature, message } = await req.json();
-  const user = await fetchUser(fid);
+  let { fid, signature, address, message } = await req.json();
 
   // Verify signature matches custody address
   const isValidSignature = await verifyMessage({
-    address: user.custody_address as `0x${string}`,
+    address,
     message,
     signature,
   });
@@ -23,12 +22,14 @@ export const POST = async (req: NextRequest) => {
   const secret = new TextEncoder().encode(env.JWT_SECRET);
   const token = await new jose.SignJWT({
     fid,
-    walletAddress: user.custody_address,
+    walletAddress: address,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
     .sign(secret);
+
+  const user = await fetchUser(fid);
 
   // Create the response
   const response = NextResponse.json({ success: true, user });
