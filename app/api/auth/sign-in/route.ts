@@ -41,14 +41,7 @@ export const POST = async (req: NextRequest) => {
     );
   }
 
-  const neynarUser = await fetchUser(fid.toString());
-
-  // const user = await createOrUpdateUser(
-  //   fid,
-  //   neynarUser.display_name,
-  //   neynarUser.username,
-  //   neynarUser.pfp_url
-  // );
+  const user = await fetchUser(fid.toString());
 
   // Generate JWT token
   const secret = new TextEncoder().encode(env.JWT_SECRET);
@@ -63,7 +56,7 @@ export const POST = async (req: NextRequest) => {
     .sign(secret);
 
   // Create the response
-  const response = NextResponse.json({ success: true, neynarUser });
+  const response = NextResponse.json({ success: true, user });
 
   // Set the auth cookie with the JWT token
   response.cookies.set({
