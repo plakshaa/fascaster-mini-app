@@ -8,7 +8,7 @@ const frame = {
   version: "next",
   imageUrl: `${appUrl}/images/feed.png`,
   button: {
-    title: "Launch App",
+    title: "Launch App on Celo",
     action: {
       type: "launch_frame",
       name: "Mini-app Starter",
