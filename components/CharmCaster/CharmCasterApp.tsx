@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSignIn } from "@/hooks/use-sign-in";
 import { useCharmCaster } from "@/hooks/use-charm-caster";
 import { useMiniApp } from "@/contexts/miniapp-context";
+import { useAccount, useConnect } from "wagmi";
 import WelcomeFrame from "./WelcomeFrame";
 import ProfileFrame from "./ProfileFrame";
 import MatchFrame from "./MatchFrame";
@@ -16,10 +17,21 @@ export default function CharmCasterApp() {
   const [appState, setAppState] = useState<AppState>("welcome");
   const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
   
-  const { context } = useMiniApp();
-  const { signIn, isLoading: isSigningIn, isSignedIn, user } = useSignIn({
+  const { context, isMiniAppReady } = useMiniApp();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  
+  const { signIn, isLoading: isSigningIn, isSignedIn, user, error: signInError } = useSignIn({
     autoSignIn: false,
   });
+
+  // Auto-connect wallet when mini app is ready
+  useEffect(() => {
+    if (isMiniAppReady && !isConnected && connectors.length > 0) {
+      console.log("Auto-connecting wallet...");
+      connect({ connector: connectors[0] });
+    }
+  }, [isMiniAppReady, isConnected, connect, connectors]);
 
   const currentUserFid = typeof context?.user?.fid === 'number' ? context.user.fid : 
                       typeof user?.fid === 'number' ? user.fid : undefined;
@@ -37,6 +49,16 @@ export default function CharmCasterApp() {
   } = useCharmCaster(currentUserFid);
 
   const handleStartMatching = () => {
+    if (!isMiniAppReady) {
+      console.log("Mini app not ready yet");
+      return;
+    }
+    
+    if (!isConnected) {
+      console.log("Wallet not connected");
+      return;
+    }
+    
     if (!isSignedIn) {
       setAppState("sign-in");
     } else {
@@ -118,7 +140,11 @@ export default function CharmCasterApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <WelcomeFrame onStartMatching={handleStartMatching} />
+            <WelcomeFrame 
+              onStartMatching={handleStartMatching} 
+              isReady={isMiniAppReady}
+              isConnected={isConnected}
+            />
           </motion.div>
         )}
 
@@ -138,13 +164,36 @@ export default function CharmCasterApp() {
               <p className="text-white/80">
                 Connect your Farcaster account to find your charm
               </p>
-              <button
-                onClick={handleSignIn}
-                disabled={isSigningIn}
-                className="px-8 py-4 bg-white text-purple-600 font-bold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50"
-              >
-                {isSigningIn ? "Signing in..." : "🔗 Sign in with Farcaster"}
-              </button>
+              
+              {!isConnected && (
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-2">
+                  <p className="text-white/80 text-sm">Wallet not connected</p>
+                  <button
+                    onClick={() => connectors.length > 0 && connect({ connector: connectors[0] })}
+                    className="px-6 py-3 bg-white/20 text-white font-medium rounded-full hover:bg-white/30 transition-all duration-300"
+                  >
+                    🔗 Connect Wallet
+                  </button>
+                </div>
+              )}
+              
+              {isConnected && (
+                <div className="space-y-4">
+                  {signInError && (
+                    <div className="bg-red-500/20 backdrop-blur-sm rounded-2xl p-4">
+                      <p className="text-white/90 text-sm">Error: {signInError}</p>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={handleSignIn}
+                    disabled={isSigningIn}
+                    className="px-8 py-4 bg-white text-purple-600 font-bold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50"
+                  >
+                    {isSigningIn ? "Signing in..." : "🔗 Sign in with Farcaster"}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

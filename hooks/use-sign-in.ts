@@ -30,22 +30,36 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
       setIsLoading(true);
       setError(null);
 
+      // Wait a bit for wallet to be ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       if (!address) {
         console.error("No wallet connected");
-        throw new Error("No wallet connected");
+        setError("Wallet not connected. Please connect your wallet first.");
+        return;
       }
 
       if (!context) {
-        console.error("Not in mini app");
-        throw new Error("Not in mini app");
+        console.error("Not in mini app context");
+        setError("Farcaster context not available. Please try again.");
+        return;
       }
 
+      if (!context.user?.fid) {
+        console.error("No user FID available");
+        setError("Farcaster user data not available. Please try again.");
+        return;
+      }
+
+      console.log("Getting Farcaster token...");
       const { token } = await sdk.quickAuth.getToken();
       if (!token) {
         console.error("Sign in failed, no farcaster token");
-        throw new Error("Sign in failed");
+        setError("Failed to get Farcaster authentication token.");
+        return;
       }
 
+      console.log("Sending sign-in request...");
       const res = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: {
@@ -59,23 +73,25 @@ export const useSignIn = ({ autoSignIn = false }: { autoSignIn?: boolean }) => {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error(errorData);
-        throw new Error(errorData.message || "Sign in failed");
+        console.error("Sign-in API error:", errorData);
+        setError(errorData.message || `Sign in failed (${res.status})`);
+        return;
       }
 
       const data = await res.json();
+      console.log("Sign-in successful!");
       setIsSignedIn(true);
       refetchUser();
       return data;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Sign in failed";
+      console.error("Sign-in error:", err);
       setError(errorMessage);
-      throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [refetchUser, address]);
+  }, [refetchUser, address, context]);
 
   useEffect(() => {
     // if autoSignIn is true, sign in automatically on mount
