@@ -1,61 +1,137 @@
 "use client";
 
-import { CharmProfile, Match, MatchState } from "@/types/charm-caster";
-import { useCallback, useEffect, useState } from "react";
+import { CharmProfile, Match, MatchState, MatchRequest, NotificationData } from "@/types/charm-caster";
+import { useCallback, useState, useEffect } from "react";
+
+// Mock data for demo - in a real app, this would come from Neynar API
+const MOCK_PROFILES: CharmProfile[] = [
+  {
+    fid: 12345,
+    username: "alice_crypto",
+    display_name: "Alice Johnson",
+    pfp_url: "https://images.unsplash.com/photo-1494790108755-2616b612b913?w=400&h=400&fit=crop&crop=face",
+    bio: "DeFi enthusiast building the future of finance. Love hiking and good coffee ☕",
+    follower_count: 2340,
+    following_count: 567,
+    age: 28,
+    location: "San Francisco, CA",
+    interests: ["DeFi", "Hiking", "Photography"]
+  },
+  {
+    fid: 54321,
+    username: "bob_builder",
+    display_name: "Bob Smith",
+    pfp_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    bio: "Full-stack developer and Web3 creator. Always learning, always building 🚀",
+    follower_count: 1890,
+    following_count: 234,
+    age: 32,
+    location: "Austin, TX",
+    interests: ["Web3", "Gaming", "Music"]
+  },
+  {
+    fid: 67890,
+    username: "charlie_art",
+    display_name: "Charlie Davis",
+    pfp_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
+    bio: "Digital artist creating NFTs that tell stories. Passionate about creativity and innovation ✨",
+    follower_count: 3456,
+    following_count: 789,
+    age: 26,
+    location: "Brooklyn, NY",
+    interests: ["NFTs", "Art", "Travel"]
+  },
+  {
+    fid: 98765,
+    username: "diana_explorer",
+    display_name: "Diana Wilson",
+    pfp_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face",
+    bio: "Blockchain researcher exploring the intersection of tech and society. Adventure seeker 🌍",
+    follower_count: 1567,
+    following_count: 432,
+    age: 30,
+    location: "Denver, CO",
+    interests: ["Research", "Adventure", "Tech"]
+  },
+  {
+    fid: 11111,
+    username: "emma_designer",
+    display_name: "Emma Chen",
+    pfp_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&crop=face",
+    bio: "UI/UX designer crafting beautiful digital experiences. Coffee addict and cat lover 🐱",
+    follower_count: 2890,
+    following_count: 445,
+    age: 27,
+    location: "Seattle, WA",
+    interests: ["Design", "Cats", "Coffee"]
+  }
+];
 
 export const useCharmCaster = (currentUserFid?: number) => {
-  const [matchState, setMatchState] = useState<MatchState>({
+  const initialState: MatchState = {
     currentProfile: null,
     matches: [],
-    potentialMatches: [],
+    matchRequests: [],
+    notifications: [],
+    potentialMatches: MOCK_PROFILES,
     currentIndex: 0
-  });
+  };
+  
+  const [matchState, setMatchState] = useState<MatchState>(initialState);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [hasLoadedProfiles, setHasLoadedProfiles] = useState(false);
 
-  // Load potential matches from API
-  const loadPotentialMatches = useCallback(async () => {
-    if (!currentUserFid || hasLoadedProfiles) return;
+  // Fetch notifications and match requests on mount
+  useEffect(() => {
+    if (currentUserFid) {
+      fetchNotifications();
+      fetchMatchRequests();
+      // Set up periodic refresh for notifications
+      const interval = setInterval(() => {
+        fetchNotifications();
+        fetchMatchRequests();
+      }, 10000); // Check every 10 seconds
 
-    setIsLoading(true);
+      return () => clearInterval(interval);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserFid]);
+
+  // Fetch user's notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!currentUserFid) return;
+    
     try {
-      const response = await fetch('/api/matches/potential', {
-        credentials: 'include',
-        headers: {
-          'x-user-fid': currentUserFid.toString()
-        }
-      });
-
+      const response = await fetch(`/api/notifications/${currentUserFid}`);
       if (response.ok) {
-        const data = await response.json();
+        const notifications = await response.json();
         setMatchState(prev => ({
           ...prev,
-          potentialMatches: data.matches || [],
-          currentIndex: 0
+          notifications: notifications || []
         }));
-        setHasLoadedProfiles(true);
       }
     } catch (error) {
-      console.error('Failed to load potential matches:', error);
-      // Fallback to mock data
-      setMatchState(prev => ({
-        ...prev,
-        potentialMatches: MOCK_PROFILES,
-        currentIndex: 0
-      }));
-      setHasLoadedProfiles(true);
-    } finally {
-      setIsLoading(false);
+      console.error("Error fetching notifications:", error);
     }
-  }, [currentUserFid, hasLoadedProfiles]);
+  }, [currentUserFid]);
 
-  // Load potential matches when component mounts
-  useEffect(() => {
-    if (currentUserFid && !hasLoadedProfiles) {
-      loadPotentialMatches();
+  // Fetch match requests
+  const fetchMatchRequests = useCallback(async () => {
+    if (!currentUserFid) return;
+    
+    try {
+      const response = await fetch(`/api/match-requests/${currentUserFid}`);
+      if (response.ok) {
+        const requests = await response.json();
+        setMatchState(prev => ({
+          ...prev,
+          matchRequests: requests || []
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching match requests:", error);
     }
-  }, [currentUserFid, hasLoadedProfiles, loadPotentialMatches]);
+  }, [currentUserFid]);
 
   // Get the current profile to show
   const getCurrentProfile = useCallback(() => {
@@ -65,68 +141,112 @@ export const useCharmCaster = (currentUserFid?: number) => {
     return matchState.potentialMatches[matchState.currentIndex];
   }, [matchState.currentIndex, matchState.potentialMatches]);
 
-  // Move to next profile
+  // Move to next profile safely
   const nextProfile = useCallback(() => {
-    setMatchState(prev => ({
-      ...prev,
-      currentIndex: prev.currentIndex + 1,
-      currentProfile: null
-    }));
+    setMatchState(prev => {
+      const newIndex = prev.currentIndex + 1;
+      console.log(`Moving to next profile. Current index: ${prev.currentIndex}, New index: ${newIndex}, Total profiles: ${prev.potentialMatches.length}`);
+      
+      return {
+        ...prev,
+        currentIndex: newIndex,
+        currentProfile: null
+      };
+    });
   }, []);
 
-  // Handle matching with someone
+  // Handle matching with someone - sends match request
   const matchProfile = useCallback(async (profile: CharmProfile) => {
-    if (!currentUserFid) return null;
+    if (!currentUserFid) {
+      console.error("No current user FID");
+      return null;
+    }
 
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/matches', {
+      console.log(`💕 Sending match request to ${profile.display_name} (FID: ${profile.fid})`);
+      
+      // Send match request
+      const response = await fetch(`/api/match-requests/${profile.fid}`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-fid': currentUserFid.toString()
+        headers: { 
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          targetFid: profile.fid,
-          action: 'like'
+          fromFid: currentUserFid,
+          fromProfile: {
+            fid: currentUserFid,
+            username: 'current_user', // In a real app, get this from context
+            display_name: 'Current User', // In a real app, get this from context
+            pfp_url: '',
+            follower_count: 0,
+            following_count: 0
+          }
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.match && data.matchData) {
-          // It's a mutual match!
-          const newMatch: Match = {
-            id: `match_${data.matchData.user1Fid}_${data.matchData.user2Fid}_${Date.now()}`,
-            user1Fid: data.matchData.user1Fid,
-            user2Fid: data.matchData.user2Fid,
-            createdAt: new Date(data.matchData.timestamp),
-            onChain: false
-          };
-
-          setMatchState(prev => ({
-            ...prev,
-            matches: [...prev.matches, newMatch],
-            currentIndex: prev.currentIndex + 1,
-            currentProfile: profile
-          }));
-
-          return newMatch;
-        } else {
-          // No mutual match, just move to next
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.error === "Match request already exists") {
+          console.log("Match request already sent to this user");
           nextProfile();
           return null;
         }
+        throw new Error('Failed to send match request');
+      }
+
+      const requestData = await response.json();
+      
+      if (requestData.isInstantMatch) {
+        // It's an instant match!
+        const newMatch: Match = {
+          id: crypto.randomUUID(),
+          user1Fid: requestData.matchData.user1Fid,
+          user2Fid: requestData.matchData.user2Fid,
+          user1Profile: requestData.matchData.user1Profile,
+          user2Profile: requestData.matchData.user2Profile,
+          createdAt: new Date(),
+          onChain: false
+        };
+
+        setMatchState(prev => ({
+          ...prev,
+          matches: [...prev.matches, newMatch]
+        }));
+
+        console.log("🎉 Instant match!");
+        nextProfile();
+        return newMatch;
       } else {
-        // API error, move to next
+        // Regular match request sent - create a notification for the recipient
+        await fetch(`/api/notifications/${profile.fid}`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'match_request',
+            fromFid: currentUserFid,
+            fromProfile: {
+              fid: currentUserFid,
+              username: 'current_user',
+              display_name: 'Current User',
+              pfp_url: '',
+              follower_count: 0,
+              following_count: 0
+            },
+            requestId: requestData.id,
+            message: `You have a new match request!`
+          })
+        });
+
+        console.log("📤 Match request sent successfully");
         nextProfile();
         return null;
       }
     } catch (error) {
-      console.error("Error matching profile:", error);
+      console.error("Error sending match request:", error);
       nextProfile();
       return null;
     } finally {
@@ -136,25 +256,14 @@ export const useCharmCaster = (currentUserFid?: number) => {
 
   // Handle passing on someone
   const passProfile = useCallback(async (profile: CharmProfile) => {
-    if (!currentUserFid) return;
-
-    try {
-      await fetch('/api/matches', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-fid': currentUserFid.toString()
-        },
-        body: JSON.stringify({
-          targetFid: profile.fid,
-          action: 'pass'
-        })
-      });
-    } catch (error) {
-      console.error("Error passing profile:", error);
+    if (!currentUserFid) {
+      console.error("No current user FID");
+      return;
     }
+
+    console.log(`Passing on ${profile.display_name} (FID: ${profile.fid})`);
     
+    // Just move to next profile for passing
     nextProfile();
   }, [currentUserFid, nextProfile]);
 
@@ -163,6 +272,7 @@ export const useCharmCaster = (currentUserFid?: number) => {
     setIsLoading(true);
     
     try {
+      console.log("Minting NFT for match:", match.id);
       // Simulate minting delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
@@ -189,53 +299,163 @@ export const useCharmCaster = (currentUserFid?: number) => {
 
   // Reset to show more profiles
   const resetMatching = useCallback(() => {
-    setHasLoadedProfiles(false);
+    console.log("Resetting matching to start over");
     setMatchState(prev => ({
       ...prev,
       currentIndex: 0,
-      currentProfile: null,
-      potentialMatches: []
+      currentProfile: null
     }));
   }, []);
 
+  // Handle match request response (accept/decline)
+  const respondToMatchRequest = useCallback(async (requestId: string, status: 'accepted' | 'declined') => {
+    if (!currentUserFid) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/match-requests/${currentUserFid}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          requestId,
+          status
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to respond to match request');
+      }
+
+      const updatedRequest = await response.json();
+
+      // Update local state
+      setMatchState(prev => ({
+        ...prev,
+        matchRequests: prev.matchRequests.map(req => 
+          req.id === requestId ? updatedRequest : req
+        )
+      }));
+
+      if (status === 'accepted') {
+        // Create a match
+        const match: Match = {
+          id: crypto.randomUUID(),
+          user1Fid: updatedRequest.fromFid,
+          user2Fid: currentUserFid,
+          user1Profile: updatedRequest.fromProfile,
+          user2Profile: {
+            fid: currentUserFid,
+            username: 'current_user',
+            display_name: 'Current User',
+            pfp_url: '',
+            follower_count: 0,
+            following_count: 0
+          },
+          createdAt: new Date(),
+          onChain: false
+        };
+
+        setMatchState(prev => ({
+          ...prev,
+          matches: [...prev.matches, match]
+        }));
+
+        // Notify the other person about the match
+        await fetch(`/api/notifications/${updatedRequest.fromFid}`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'match_confirmed',
+            fromFid: currentUserFid,
+            fromProfile: {
+              fid: currentUserFid,
+              username: 'current_user',
+              display_name: 'Current User',
+              pfp_url: '',
+              follower_count: 0,
+              following_count: 0
+            },
+            matchId: match.id,
+            message: `🎉 You have a new match!`
+          })
+        });
+
+        console.log("🎉 Match created successfully!");
+      }
+
+      // Refresh data
+      fetchMatchRequests();
+      fetchNotifications();
+
+    } catch (error) {
+      console.error("Error responding to match request:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUserFid, fetchMatchRequests, fetchNotifications]);
+
+  // Mark notification as read
+  const markNotificationRead = useCallback(async (notificationId: string) => {
+    if (!currentUserFid) return;
+
+    try {
+      await fetch(`/api/notifications/${currentUserFid}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          notificationId,
+          read: true
+        })
+      });
+
+      // Update local state
+      setMatchState(prev => ({
+        ...prev,
+        notifications: prev.notifications.map(notif => 
+          notif.id === notificationId ? { ...notif, read: true } : notif
+        )
+      }));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  }, [currentUserFid]);
+
+  // Check if there are more profiles
+  const hasMoreProfiles = matchState.currentIndex < matchState.potentialMatches.length;
+
+  // Get current profile
+  const currentProfile = getCurrentProfile();
+
+  console.log("useCharmCaster state:", {
+    currentIndex: matchState.currentIndex,
+    totalProfiles: matchState.potentialMatches.length,
+    hasMoreProfiles,
+    currentProfile: currentProfile?.display_name || "None",
+    matchesCount: matchState.matches.length
+  });
+
   return {
-    currentProfile: getCurrentProfile(),
+    currentProfile,
     matches: matchState.matches,
+    matchRequests: matchState.matchRequests,
+    notifications: matchState.notifications,
     isLoading,
-    hasMoreProfiles: matchState.currentIndex < matchState.potentialMatches.length,
+    hasMoreProfiles,
     nextProfile,
     matchProfile,
     passProfile,
     mintMatchNFT,
     resetMatching,
-    loadPotentialMatches
+    respondToMatchRequest,
+    markNotificationRead,
+    fetchNotifications,
+    fetchMatchRequests
   };
 };
-
-// Mock data for fallback
-const MOCK_PROFILES: CharmProfile[] = [
-  {
-    fid: 12345,
-    username: "alice_crypto",
-    display_name: "Alice Johnson",
-    pfp_url: "https://images.unsplash.com/photo-1494790108755-2616b612b913?w=400&h=400&fit=crop&crop=face",
-    bio: "DeFi enthusiast building the future of finance. Love hiking and good coffee ☕",
-    follower_count: 2340,
-    following_count: 567,
-    age: 28,
-    location: "San Francisco, CA",
-    interests: ["DeFi", "Hiking", "Photography"]
-  },
-  {
-    fid: 54321,
-    username: "bob_builder",
-    display_name: "Bob Smith",
-    pfp_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-    bio: "Full-stack developer and Web3 creator. Always learning, always building 🚀",
-    follower_count: 1890,
-    following_count: 234,
-    age: 32,
-    location: "Austin, TX",
-    interests: ["Web3", "Gaming", "Music"]
-  }
-];

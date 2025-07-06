@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
     await redis.set(matchKey, newMatch);
 
     // Add to each user's matches list
-    const user1Matches: Match[] = (await redis.get(getMatchesKey(user1Fid))) || [];
-    const user2Matches: Match[] = (await redis.get(getMatchesKey(user2Fid))) || [];
+    const user1Matches: Match[] = ((await redis.get(getMatchesKey(user1Fid))) as Match[]) || [];
+    const user2Matches: Match[] = ((await redis.get(getMatchesKey(user2Fid))) as Match[]) || [];
 
     user1Matches.unshift(newMatch);
     user2Matches.unshift(newMatch);
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Get all matches for this user
-    const matches: Match[] = (await redis.get(getMatchesKey(currentUserFid))) || [];
+    const matches: Match[] = ((await redis.get(getMatchesKey(currentUserFid))) as Match[]) || [];
 
     return NextResponse.json(matches);
   } catch (error) {

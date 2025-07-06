@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSignIn } from "@/hooks/use-sign-in";
-import { useCharmCaster } from "@/hooks/use-charm-caster-fixed";
+import { useCharmCaster } from "@/hooks/use-charm-caster";
 import { useMiniApp } from "@/contexts/miniapp-context";
 import { useAccount, useConnect } from "wagmi";
 import WelcomeFrame from "./WelcomeFrame";

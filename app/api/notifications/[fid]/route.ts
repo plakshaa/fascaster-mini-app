@@ -27,7 +27,7 @@ export async function GET(
 
     // Get all notifications for this user
     const notificationsJson = await redis.get(getNotificationsKey(fid));
-    const notifications: NotificationData[] = notificationsJson || [];
+    const notifications: NotificationData[] = (notificationsJson as NotificationData[]) || [];
 
     return NextResponse.json(notifications);
   } catch (error) {
@@ -77,7 +77,7 @@ export async function POST(
 
     // Get existing notifications
     const existingNotifications: NotificationData[] = 
-      (await redis.get(getNotificationsKey(fid))) || [];
+      ((await redis.get(getNotificationsKey(fid))) as NotificationData[]) || [];
 
     // Add new notification
     existingNotifications.unshift(newNotification);
@@ -128,7 +128,7 @@ export async function PATCH(
 
     // Get existing notifications
     const notifications: NotificationData[] = 
-      (await redis.get(getNotificationsKey(fid))) || [];
+      ((await redis.get(getNotificationsKey(fid))) as NotificationData[]) || [];
 
     // Update the specific notification
     const updatedNotifications = notifications.map(notif => 

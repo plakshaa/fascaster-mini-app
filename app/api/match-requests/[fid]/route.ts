@@ -31,7 +31,7 @@ export async function GET(
 
     // Get all match requests for this user
     const requestsJson = await redis.get(getMatchRequestsKey(fid));
-    const requests: MatchRequest[] = requestsJson || [];
+    const requests: MatchRequest[] = (requestsJson as MatchRequest[]) || [];
 
     return NextResponse.json(requests);
   } catch (error) {
@@ -69,7 +69,7 @@ export async function POST(
     // Check if request already exists
     if (redis) {
       const existingRequests: MatchRequest[] = 
-        (await redis.get(getMatchRequestsKey(toFid))) || [];
+        ((await redis.get(getMatchRequestsKey(toFid))) as MatchRequest[]) || [];
       
       const existingRequest = existingRequests.find(
         req => req.fromFid === fromFid && req.status === 'pending'
@@ -84,7 +84,7 @@ export async function POST(
 
       // Check if the recipient has already sent a request to the sender (instant match!)
       const recipientSentRequests: MatchRequest[] = 
-        (await redis.get(getSentRequestsKey(toFid))) || [];
+        ((await redis.get(getSentRequestsKey(toFid))) as MatchRequest[]) || [];
       
       const mutualRequest = recipientSentRequests.find(
         req => req.toFid === fromFid && req.status === 'pending'
@@ -116,7 +116,7 @@ export async function POST(
 
         // Update sender's received requests  
         const senderReceivedRequests: MatchRequest[] = 
-          (await redis.get(getMatchRequestsKey(fromFid))) || [];
+          ((await redis.get(getMatchRequestsKey(fromFid))) as MatchRequest[]) || [];
         const updatedSenderReceived = senderReceivedRequests.map(req => 
           req.id === mutualRequest.id ? mutualRequest : req
         );
@@ -127,7 +127,7 @@ export async function POST(
         await redis.set(getMatchRequestsKey(toFid), existingRequests.slice(0, 100));
 
         const fromSentRequests: MatchRequest[] = 
-          (await redis.get(getSentRequestsKey(fromFid))) || [];
+          ((await redis.get(getSentRequestsKey(fromFid))) as MatchRequest[]) || [];
         fromSentRequests.unshift(newRequest);
         await redis.set(getSentRequestsKey(fromFid), fromSentRequests.slice(0, 100));
 
@@ -197,13 +197,13 @@ export async function POST(
 
     // Store the request for the recipient
     const existingRequests: MatchRequest[] = 
-      (await redis.get(getMatchRequestsKey(toFid))) || [];
+      ((await redis.get(getMatchRequestsKey(toFid))) as MatchRequest[]) || [];
     existingRequests.unshift(newRequest);
     await redis.set(getMatchRequestsKey(toFid), existingRequests.slice(0, 100));
 
     // Store in sender's sent requests
     const sentRequests: MatchRequest[] = 
-      (await redis.get(getSentRequestsKey(fromFid))) || [];
+      ((await redis.get(getSentRequestsKey(fromFid))) as MatchRequest[]) || [];
     sentRequests.unshift(newRequest);
     await redis.set(getSentRequestsKey(fromFid), sentRequests.slice(0, 100));
 
@@ -247,7 +247,7 @@ export async function PATCH(
 
     // Get existing requests
     const requests: MatchRequest[] = 
-      (await redis.get(getMatchRequestsKey(fid))) || [];
+      ((await redis.get(getMatchRequestsKey(fid))) as MatchRequest[]) || [];
 
     // Find and update the request
     const requestIndex = requests.findIndex(req => req.id === requestId);
@@ -272,7 +272,7 @@ export async function PATCH(
 
     // Also update in sender's sent requests
     const sentRequests: MatchRequest[] = 
-      (await redis.get(getSentRequestsKey(updatedRequest.fromFid))) || [];
+      ((await redis.get(getSentRequestsKey(updatedRequest.fromFid))) as MatchRequest[]) || [];
     
     const sentIndex = sentRequests.findIndex(req => req.id === requestId);
     if (sentIndex !== -1) {
