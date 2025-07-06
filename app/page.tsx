@@ -8,23 +8,23 @@ const frame = {
   version: "next",
   imageUrl: `${appUrl}/images/feed.png`,
   button: {
-    title: "Launch App on Celo",
+    title: "Find Your Charm ✨",
     action: {
       type: "launch_frame",
-      name: "Mini-app Starter",
+      name: "Charm Caster",
       url: appUrl,
       splashImageUrl: `${appUrl}/images/splash.png`,
-      splashBackgroundColor: "#ffffff",
+      splashBackgroundColor: "#ff6b9d",
     },
   },
 };
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "Mini-app Starter",
+    title: "Charm Caster",
     openGraph: {
-      title: "Mini-app Starter",
-      description: "A starter for Farcastermini-apps",
+      title: "Charm Caster",
+      description: "Find your charm on Farcaster - Quick, delightful matching for meaningful connections",
     },
     other: {
       "fc:frame": JSON.stringify(frame),
