@@ -6,13 +6,13 @@
   },
   "frame": {
     "version": "1",
-    "name": "Example Frame",
-    "iconUrl": "https://fascaster-mini-app.vercel.app/icon.png",
+    "name": "Charm Caster",
+    "iconUrl": "https://fascaster-mini-app.vercel.app/icon.jpeg",
     "homeUrl": "https://fascaster-mini-app.vercel.app",
-    "imageUrl": "https://fascaster-mini-app.vercel.app/image.png",
-    "buttonTitle": "Check this out",
+    "imageUrl": "https://fascaster-mini-app.vercel.app/icon.jpeg",
+    "buttonTitle": "Find Your Charm ✨",
     "splashImageUrl": "https://fascaster-mini-app.vercel.app/splash.png",
-    "splashBackgroundColor": "#eeccff",
+    "splashBackgroundColor": "#ff6b9d",
     "webhookUrl": "https://fascaster-mini-app.vercel.app/api/webhook"
   }
 }
