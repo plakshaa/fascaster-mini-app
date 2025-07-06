@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useSignIn } from "@/hooks/use-sign-in";
-import { useCharmCaster } from "@/hooks/use-charm-caster";
+import { useCharmCaster } from "@/hooks/use-charm-caster-fixed";
 import { useMiniApp } from "@/contexts/miniapp-context";
 import { useAccount, useConnect } from "wagmi";
 import WelcomeFrame from "./WelcomeFrame";
 import ProfileFrame from "./ProfileFrame";
 import MatchFrame from "./MatchFrame";
+import { NotificationsFrame } from "./NotificationsFrame";
 import { Match } from "@/types/charm-caster";
 import { motion, AnimatePresence } from "framer-motion";
 
-type AppState = "welcome" | "sign-in" | "browsing" | "match" | "no-more-profiles";
+type AppState = "welcome" | "sign-in" | "browsing" | "match" | "no-more-profiles" | "notifications";
 
 export default function CharmCasterApp() {
   const [appState, setAppState] = useState<AppState>("welcome");
@@ -39,14 +40,32 @@ export default function CharmCasterApp() {
   const {
     currentProfile,
     matches,
+    matchRequests,
+    notifications,
     isLoading,
     hasMoreProfiles,
     nextProfile,
     matchProfile,
     passProfile,
     mintMatchNFT,
-    resetMatching
+    resetMatching,
+    respondToMatchRequest,
+    markNotificationRead,
+    fetchNotifications,
+    fetchMatchRequests
   } = useCharmCaster(currentUserFid);
+
+  // Debug logging
+  console.log("CharmCasterApp state:", {
+    appState,
+    currentUserFid,
+    isConnected,
+    isSignedIn,
+    isMiniAppReady,
+    currentProfile: currentProfile?.display_name || "None",
+    hasMoreProfiles,
+    matchesCount: matches.length
+  });
 
   const handleStartMatching = () => {
     if (!isMiniAppReady) {
@@ -76,15 +95,28 @@ export default function CharmCasterApp() {
   };
 
   const handleMatch = async () => {
-    if (!currentProfile) return;
+    if (!currentProfile) {
+      console.error("No current profile to match");
+      return;
+    }
     
-    const match = await matchProfile(currentProfile);
-    
-    if (match) {
-      setCurrentMatch(match);
-      setAppState("match");
-    } else {
-      // No mutual match, continue browsing
+    try {
+      const match = await matchProfile(currentProfile);
+      
+      if (match) {
+        setCurrentMatch(match);
+        setAppState("match");
+      } else {
+        // No mutual match, continue browsing
+        if (hasMoreProfiles) {
+          setAppState("browsing");
+        } else {
+          setAppState("no-more-profiles");
+        }
+      }
+    } catch (error) {
+      console.error("Error in handleMatch:", error);
+      // Continue to next profile on error
       if (hasMoreProfiles) {
         setAppState("browsing");
       } else {
@@ -94,10 +126,21 @@ export default function CharmCasterApp() {
   };
 
   const handleNext = () => {
-    if (!currentProfile) return;
-    passProfile(currentProfile);
-    if (!hasMoreProfiles) {
-      setAppState("no-more-profiles");
+    if (!currentProfile) {
+      console.error("No current profile to pass");
+      return;
+    }
+    
+    try {
+      passProfile(currentProfile);
+      if (!hasMoreProfiles) {
+        setAppState("no-more-profiles");
+      }
+    } catch (error) {
+      console.error("Error in handleNext:", error);
+      if (!hasMoreProfiles) {
+        setAppState("no-more-profiles");
+      }
     }
   };
 
@@ -127,6 +170,25 @@ export default function CharmCasterApp() {
     setCurrentMatch(null);
     setAppState("browsing");
   };
+
+  const handleShowNotifications = () => {
+    setAppState("notifications");
+  };
+
+  const handleCloseNotifications = () => {
+    setAppState("browsing");
+  };
+
+  const handleRespondToMatchRequest = async (requestId: string, status: 'accepted' | 'declined') => {
+    await respondToMatchRequest(requestId, status);
+    // Refresh the data
+    fetchNotifications();
+    fetchMatchRequests();
+  };
+
+  // Get unread notifications count
+  const unreadCount = notifications.filter(n => !n.read).length + 
+                     matchRequests.filter(r => r.status === 'pending').length;
 
   // Render based on current state
   return (
@@ -205,13 +267,61 @@ export default function CharmCasterApp() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
+            className="relative"
           >
+            {/* Notification button */}
+            <motion.button
+              onClick={handleShowNotifications}
+              className="absolute top-4 right-4 z-10 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="text-xl">🔔</span>
+              {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                </div>
+              )}
+            </motion.button>
+
             <ProfileFrame
               profile={currentProfile}
               onMatch={handleMatch}
               onNext={handleNext}
               isLoading={isLoading}
             />
+          </motion.div>
+        )}
+
+        {appState === "browsing" && !currentProfile && hasMoreProfiles && (
+          <motion.div
+            key="loading-profile"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-rose-400 flex items-center justify-center p-4"
+          >
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-white text-lg">Loading next profile...</p>
+            </div>
+          </motion.div>
+        )}
+
+        {appState === "browsing" && !currentProfile && !hasMoreProfiles && (
+          <motion.div
+            key="auto-redirect"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onAnimationComplete={() => setAppState("no-more-profiles")}
+            className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-rose-400 flex items-center justify-center p-4"
+          >
+            <div className="text-center space-y-4">
+              <p className="text-white text-lg">No more profiles to show...</p>
+            </div>
           </motion.div>
         )}
 
@@ -228,6 +338,25 @@ export default function CharmCasterApp() {
               onContinue={handleContinueMatching}
               onMintNFT={handleMintNFT}
               isNftMinting={isLoading}
+            />
+          </motion.div>
+        )}
+
+        {appState === "notifications" && (
+          <motion.div
+            key="notifications"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-rose-400 flex items-center justify-center p-4"
+          >
+            <NotificationsFrame
+              notifications={notifications}
+              matchRequests={matchRequests}
+              onMarkAsRead={markNotificationRead}
+              onRespondToRequest={handleRespondToMatchRequest}
+              onClose={handleCloseNotifications}
             />
           </motion.div>
         )}

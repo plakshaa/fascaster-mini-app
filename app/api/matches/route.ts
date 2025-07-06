@@ -1,81 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Match, CharmProfile } from "@/types/charm-caster";
+import { redis } from "@/lib/redis";
 
-interface MatchRequest {
-  targetFid: number;
-  action: "like" | "pass";
+// Redis keys for storing matches
+function getMatchesKey(fid: number): string {
+  return `charm:matches:${fid}`;
 }
 
-// In-memory storage for demo - in production, use a real database
-const userLikes = new Map<string, Set<number>>();
-const matches = new Map<string, Array<{ user1Fid: number, user2Fid: number, timestamp: Date }>>();
+function getGlobalMatchKey(fid1: number, fid2: number): string {
+  const [user1, user2] = [fid1, fid2].sort();
+  return `charm:match:${user1}:${user2}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const userFid = request.headers.get("x-user-fid");
-    
-    if (!userFid) {
-      return NextResponse.json(
-        { error: "User FID required" },
-        { status: 401 }
-      );
-    }
+    const { user1Fid, user2Fid, user1Profile, user2Profile } = await request.json();
 
-    const currentUserFid = parseInt(userFid);
-    const { targetFid, action }: MatchRequest = await request.json();
-
-    if (!targetFid || !action) {
+    if (!user1Fid || !user2Fid || !user1Profile || !user2Profile) {
       return NextResponse.json(
-        { error: "Missing targetFid or action" },
+        { error: "Missing required match data" },
         { status: 400 }
       );
     }
 
-    if (action === "like") {
-      // Record the like
-      const userKey = currentUserFid.toString();
-      if (!userLikes.has(userKey)) {
-        userLikes.set(userKey, new Set());
-      }
-      userLikes.get(userKey)!.add(targetFid);
-
-      // Check if it's a mutual match
-      const targetKey = targetFid.toString();
-      const targetLikes = userLikes.get(targetKey);
-      
-      if (targetLikes && targetLikes.has(currentUserFid)) {
-        // It's a match!
-        const matchKey = [currentUserFid, targetFid].sort().join('-');
-        
-        if (!matches.has(matchKey)) {
-          const newMatch = {
-            user1Fid: Math.min(currentUserFid, targetFid),
-            user2Fid: Math.max(currentUserFid, targetFid),
-            timestamp: new Date()
-          };
-
-          if (!matches.has('global')) {
-            matches.set('global', []);
-          }
-          matches.get('global')!.push(newMatch);
-          matches.set(matchKey, [newMatch]);
-
-          return NextResponse.json({
-            match: true,
-            matchData: newMatch
-          });
-        }
+    // Check if match already exists
+    const matchKey = getGlobalMatchKey(user1Fid, user2Fid);
+    
+    if (redis) {
+      const existingMatch = await redis.get(matchKey);
+      if (existingMatch) {
+        return NextResponse.json(
+          { error: "Match already exists" },
+          { status: 400 }
+        );
       }
     }
 
-    return NextResponse.json({
-      match: false,
-      action: action
-    });
+    const newMatch: Match = {
+      id: crypto.randomUUID(),
+      user1Fid,
+      user2Fid,
+      user1Profile,
+      user2Profile,
+      createdAt: new Date(),
+      onChain: false
+    };
 
+    if (!redis) {
+      console.warn("Redis not available, match not stored");
+      return NextResponse.json(newMatch);
+    }
+
+    // Store the match for both users
+    await redis.set(matchKey, newMatch);
+
+    // Add to each user's matches list
+    const user1Matches: Match[] = (await redis.get(getMatchesKey(user1Fid))) || [];
+    const user2Matches: Match[] = (await redis.get(getMatchesKey(user2Fid))) || [];
+
+    user1Matches.unshift(newMatch);
+    user2Matches.unshift(newMatch);
+
+    await redis.set(getMatchesKey(user1Fid), user1Matches.slice(0, 100));
+    await redis.set(getMatchesKey(user2Fid), user2Matches.slice(0, 100));
+
+    return NextResponse.json(newMatch);
   } catch (error) {
-    console.error("Error processing match action:", error);
+    console.error("Error creating match:", error);
     return NextResponse.json(
-      { error: "Failed to process match action" },
+      { error: "Failed to create match" },
       { status: 500 }
     );
   }
@@ -93,22 +86,16 @@ export async function GET(request: NextRequest) {
     }
 
     const currentUserFid = parseInt(userFid);
+
+    if (!redis) {
+      console.warn("Redis not available, returning empty matches");
+      return NextResponse.json([]);
+    }
     
     // Get all matches for this user
-    const userMatches = Array.from(matches.entries())
-      .filter(([key, matchList]) => {
-        if (key === 'global') return false;
-        return matchList.some(match => 
-          match.user1Fid === currentUserFid || match.user2Fid === currentUserFid
-        );
-      })
-      .map(([key, matchList]) => matchList[0]);
+    const matches: Match[] = (await redis.get(getMatchesKey(currentUserFid))) || [];
 
-    return NextResponse.json({
-      matches: userMatches,
-      total: userMatches.length
-    });
-
+    return NextResponse.json(matches);
   } catch (error) {
     console.error("Error fetching user matches:", error);
     return NextResponse.json(
