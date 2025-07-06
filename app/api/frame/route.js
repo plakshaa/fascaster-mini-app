@@ -7,7 +7,7 @@ export async function GET(req) {
         {
           image: "https://placehold.co/600x400?text=Welcome+to+My+Mini+App",
           buttons: ["Click Me"],
-          post_url: `${process.env.NEXT_PUBLIC_URL}/api/handle-click`,
+          post_url: "https://<your-vercel-url>.vercel.app/api/handle-click",
         },
       ],
     }),
