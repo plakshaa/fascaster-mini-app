@@ -43,6 +43,8 @@ export default function CharmCasterApp() {
     matchRequests,
     notifications,
     isLoading,
+    profilesLoading,
+    profilesError,
     hasMoreProfiles,
     nextProfile,
     matchProfile,
@@ -52,7 +54,8 @@ export default function CharmCasterApp() {
     respondToMatchRequest,
     markNotificationRead,
     fetchNotifications,
-    fetchMatchRequests
+    fetchMatchRequests,
+    fetchRealProfiles
   } = useCharmCaster(currentUserFid);
 
   // Debug logging
@@ -64,8 +67,16 @@ export default function CharmCasterApp() {
     isMiniAppReady,
     currentProfile: currentProfile?.display_name || "None",
     hasMoreProfiles,
-    matchesCount: matches.length
+    matchesCount: matches.length,
+    profilesLoading,
+    profilesError
   });
+
+  const handleRetryProfiles = async () => {
+    if (fetchRealProfiles) {
+      await fetchRealProfiles();
+    }
+  };
 
   const handleStartMatching = () => {
     if (!isMiniAppReady) {
@@ -165,10 +176,14 @@ export default function CharmCasterApp() {
     }
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
     resetMatching();
     setCurrentMatch(null);
     setAppState("browsing");
+    // Fetch fresh profiles
+    if (fetchRealProfiles) {
+      await fetchRealProfiles();
+    }
   };
 
   const handleShowNotifications = () => {
@@ -260,7 +275,52 @@ export default function CharmCasterApp() {
           </motion.div>
         )}
 
-        {appState === "browsing" && currentProfile && (
+        {appState === "browsing" && profilesLoading && (
+          <motion.div
+            key="loading-profiles"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-rose-400 flex items-center justify-center p-4"
+          >
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-white text-lg">Loading real Farcaster profiles...</p>
+              <p className="text-white/80 text-sm">Finding your perfect matches ✨</p>
+            </div>
+          </motion.div>
+        )}
+
+        {appState === "browsing" && profilesError && (
+          <motion.div
+            key="profiles-error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-rose-400 flex items-center justify-center p-4"
+          >
+            <div className="text-center space-y-6 max-w-md">
+              <h2 className="text-3xl font-bold text-white">
+                Oops! Something went wrong 😅
+              </h2>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-2">
+                <p className="text-white/80 text-sm">
+                  {profilesError}
+                </p>
+              </div>
+              <button
+                onClick={handleRetryProfiles}
+                className="px-8 py-4 bg-white text-purple-600 font-bold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                🔄 Try Again
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {appState === "browsing" && !profilesLoading && !profilesError && currentProfile && (
           <motion.div
             key={`profile-${currentProfile.fid}`}
             initial={{ opacity: 0, x: 100 }}
@@ -295,7 +355,7 @@ export default function CharmCasterApp() {
           </motion.div>
         )}
 
-        {appState === "browsing" && !currentProfile && hasMoreProfiles && (
+        {appState === "browsing" && !profilesLoading && !profilesError && !currentProfile && hasMoreProfiles && (
           <motion.div
             key="loading-profile"
             initial={{ opacity: 0 }}
@@ -311,7 +371,7 @@ export default function CharmCasterApp() {
           </motion.div>
         )}
 
-        {appState === "browsing" && !currentProfile && !hasMoreProfiles && (
+        {appState === "browsing" && !profilesLoading && !profilesError && !currentProfile && !hasMoreProfiles && (
           <motion.div
             key="auto-redirect"
             initial={{ opacity: 0 }}
@@ -391,7 +451,7 @@ export default function CharmCasterApp() {
                 onClick={handleRestart}
                 className="px-8 py-4 bg-white text-purple-600 font-bold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300"
               >
-                🔄 Browse Again
+                🔄 Load New Profiles
               </button>
             </div>
           </motion.div>

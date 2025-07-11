@@ -3,89 +3,84 @@
 import { CharmProfile, Match, MatchState, MatchRequest, NotificationData } from "@/types/charm-caster";
 import { useCallback, useState, useEffect } from "react";
 
-// Mock data for demo - in a real app, this would come from Neynar API
-const MOCK_PROFILES: CharmProfile[] = [
-  {
-    fid: 12345,
-    username: "alice_crypto",
-    display_name: "Alice Johnson",
-    pfp_url: "https://images.unsplash.com/photo-1494790108755-2616b612b913?w=400&h=400&fit=crop&crop=face",
-    bio: "DeFi enthusiast building the future of finance. Love hiking and good coffee ☕",
-    follower_count: 2340,
-    following_count: 567,
-    age: 28,
-    location: "San Francisco, CA",
-    interests: ["DeFi", "Hiking", "Photography"]
-  },
-  {
-    fid: 54321,
-    username: "bob_builder",
-    display_name: "Bob Smith",
-    pfp_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-    bio: "Full-stack developer and Web3 creator. Always learning, always building 🚀",
-    follower_count: 1890,
-    following_count: 234,
-    age: 32,
-    location: "Austin, TX",
-    interests: ["Web3", "Gaming", "Music"]
-  },
-  {
-    fid: 67890,
-    username: "charlie_art",
-    display_name: "Charlie Davis",
-    pfp_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
-    bio: "Digital artist creating NFTs that tell stories. Passionate about creativity and innovation ✨",
-    follower_count: 3456,
-    following_count: 789,
-    age: 26,
-    location: "Brooklyn, NY",
-    interests: ["NFTs", "Art", "Travel"]
-  },
-  {
-    fid: 98765,
-    username: "diana_explorer",
-    display_name: "Diana Wilson",
-    pfp_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face",
-    bio: "Blockchain researcher exploring the intersection of tech and society. Adventure seeker 🌍",
-    follower_count: 1567,
-    following_count: 432,
-    age: 30,
-    location: "Denver, CO",
-    interests: ["Research", "Adventure", "Tech"]
-  },
-  {
-    fid: 11111,
-    username: "emma_designer",
-    display_name: "Emma Chen",
-    pfp_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&crop=face",
-    bio: "UI/UX designer crafting beautiful digital experiences. Coffee addict and cat lover 🐱",
-    follower_count: 2890,
-    following_count: 445,
-    age: 27,
-    location: "Seattle, WA",
-    interests: ["Design", "Cats", "Coffee"]
-  }
-];
-
 export const useCharmCaster = (currentUserFid?: number) => {
   const initialState: MatchState = {
     currentProfile: null,
     matches: [],
     matchRequests: [],
     notifications: [],
-    potentialMatches: MOCK_PROFILES,
+    potentialMatches: [],
     currentIndex: 0
   };
   
   const [matchState, setMatchState] = useState<MatchState>(initialState);
-
   const [isLoading, setIsLoading] = useState(false);
+  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [profilesError, setProfilesError] = useState<string | null>(null);
 
-  // Fetch notifications and match requests on mount
+  // Fetch real Farcaster profiles
+  const fetchRealProfiles = useCallback(async () => {
+    setProfilesLoading(true);
+    setProfilesError(null);
+    
+    try {
+      console.log("🔄 Fetching real Farcaster profiles...");
+      const response = await fetch('/api/profiles/real');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch profiles: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`✅ Fetched ${data.profiles?.length || 0} real profiles from ${data.source}`);
+      
+      if (data.profiles && data.profiles.length > 0) {
+        // Filter out current user if they're in the results
+        const filteredProfiles = data.profiles.filter((profile: CharmProfile) => 
+          profile.fid !== currentUserFid
+        );
+        
+        setMatchState(prev => ({
+          ...prev,
+          potentialMatches: filteredProfiles,
+          currentIndex: 0
+        }));
+        
+        console.log(`📋 Loaded ${filteredProfiles.length} potential matches`);
+      } else {
+        setProfilesError("No profiles available");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching real profiles:", error);
+      
+      let errorMessage = "Failed to load profiles";
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          errorMessage = "Authentication error - API key issue";
+        } else if (error.message.includes('403')) {
+          errorMessage = "Access denied - Check API permissions";
+        } else if (error.message.includes('429')) {
+          errorMessage = "Rate limit exceeded - Try again later";
+        } else if (error.message.includes('500')) {
+          errorMessage = "Server error - Try again in a moment";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setProfilesError(errorMessage);
+    } finally {
+      setProfilesLoading(false);
+    }
+  }, [currentUserFid]);
+
+  // Fetch notifications, match requests, and profiles on mount
   useEffect(() => {
     if (currentUserFid) {
+      fetchRealProfiles();
       fetchNotifications();
       fetchMatchRequests();
+      
       // Set up periodic refresh for notifications
       const interval = setInterval(() => {
         fetchNotifications();
@@ -447,6 +442,8 @@ export const useCharmCaster = (currentUserFid?: number) => {
     matchRequests: matchState.matchRequests,
     notifications: matchState.notifications,
     isLoading,
+    profilesLoading,
+    profilesError,
     hasMoreProfiles,
     nextProfile,
     matchProfile,
@@ -456,6 +453,7 @@ export const useCharmCaster = (currentUserFid?: number) => {
     respondToMatchRequest,
     markNotificationRead,
     fetchNotifications,
-    fetchMatchRequests
+    fetchMatchRequests,
+    fetchRealProfiles
   };
 };
