@@ -7,12 +7,16 @@ export const config = {
 };
 
 export default async function middleware(req: NextRequest) {
-  // Skip auth check for sign-in endpoint
+  console.log('🔍 Middleware checking path:', req.nextUrl.pathname);
+  
+  // Skip auth check for sign-in endpoint, mint endpoint, and other public routes
   if (
     req.nextUrl.pathname === "/api/auth/sign-in" ||
+    req.nextUrl.pathname === "/api/mint" ||
     req.nextUrl.pathname.includes("/api/og") ||
     req.nextUrl.pathname.includes("/api/webhook")
   ) {
+    console.log('✅ Skipping auth for public route:', req.nextUrl.pathname);
     return NextResponse.next();
   }
 

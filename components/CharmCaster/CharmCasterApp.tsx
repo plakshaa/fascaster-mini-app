@@ -8,6 +8,7 @@ import { useAccount, useConnect } from "wagmi";
 import WelcomeFrame from "./WelcomeFrame";
 import ProfileFrame from "./ProfileFrame";
 import MatchFrame from "./MatchFrame";
+import EnhancedMatchFrame from "./EnhancedMatchFrame";
 import { NotificationsFrame } from "./NotificationsFrame";
 import { Match } from "@/types/charm-caster";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +18,7 @@ type AppState = "welcome" | "sign-in" | "browsing" | "match" | "no-more-profiles
 export default function CharmCasterApp() {
   const [appState, setAppState] = useState<AppState>("welcome");
   const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
+  const [useEnhancedMatch, setUseEnhancedMatch] = useState(true); // Toggle for enhanced match frame
   
   const { context, isMiniAppReady } = useMiniApp();
   const { address, isConnected } = useAccount();
@@ -346,6 +348,16 @@ export default function CharmCasterApp() {
               )}
             </motion.button>
 
+            {/* NFT Mode Toggle (for testing) */}
+            <motion.button
+              onClick={() => setUseEnhancedMatch(!useEnhancedMatch)}
+              className="absolute top-4 left-4 z-10 px-3 py-1 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all text-xs font-medium"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {useEnhancedMatch ? '🎨 Enhanced' : '🔄 Classic'}
+            </motion.button>
+
             <ProfileFrame
               profile={currentProfile}
               onMatch={handleMatch}
@@ -393,12 +405,21 @@ export default function CharmCasterApp() {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.4 }}
           >
-            <MatchFrame
-              matchedProfile={currentProfile}
-              onContinue={handleContinueMatching}
-              onMintNFT={handleMintNFT}
-              isNftMinting={isLoading}
-            />
+            {useEnhancedMatch ? (
+              <EnhancedMatchFrame
+                matchedProfile={currentProfile}
+                userWalletAddress={address || ''}
+                onContinue={handleContinueMatching}
+                showAsModal={false}
+              />
+            ) : (
+              <MatchFrame
+                matchedProfile={currentProfile}
+                onContinue={handleContinueMatching}
+                onMintNFT={handleMintNFT}
+                isNftMinting={isLoading}
+              />
+            )}
           </motion.div>
         )}
 
