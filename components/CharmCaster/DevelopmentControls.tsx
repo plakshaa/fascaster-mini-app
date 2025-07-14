@@ -45,7 +45,7 @@ export default function DevelopmentControls({
               <p>🎯 Testing Instructions:</p>
               <ol className="list-decimal list-inside space-y-1 mt-1">
                 <li>Like someone by clicking ❤️</li>
-                <li>Click "Simulate Match Back" below</li>
+                <li>Click &quot;Simulate Match Back&quot; below</li>
                 <li>Check notifications for the match</li>
                 <li>Test NFT minting!</li>
               </ol>
