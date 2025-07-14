@@ -29,11 +29,16 @@ export const MintNFTCard: React.FC<MintNFTCardProps> = ({
       return;
     }
 
+    console.log('🎨 Minting Charm NFT to wallet:', userWalletAddress);
     setIsMinting(true);
     setMintError(null);
 
     try {
       console.log('🎨 Minting Charm NFT...');
+      console.log('🔍 Request payload:', {
+        to: userWalletAddress,
+        tokenURI: CHARM_NFT_URI
+      });
       
       const response = await fetch('/api/mint', {
         method: 'POST',
@@ -46,15 +51,23 @@ export const MintNFTCard: React.FC<MintNFTCardProps> = ({
         })
       });
 
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', response.headers);
+
       const result = await response.json();
+      console.log('🔍 Response data:', result);
 
       if (response.ok) {
         console.log('✅ NFT minted successfully!', result);
         setMintSuccess(true);
         onMintSuccess?.(result);
         
-        // Show success message
-        alert('🎉 You just minted your Charm Match NFT!');
+        // Show success message with transaction details
+        if (result.transaction?.hash) {
+          alert(`🎉 You just minted your Charm Match NFT!\n\nTransaction: ${result.transaction.hash}\n\nView on explorer: ${result.explorer || 'N/A'}`);
+        } else {
+          alert('🎉 You just minted your Charm Match NFT!');
+        }
         
       } else {
         throw new Error(result.error || 'Failed to mint NFT');

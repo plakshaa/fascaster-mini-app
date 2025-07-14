@@ -26,7 +26,14 @@ export const EnhancedMatchFrame: React.FC<EnhancedMatchFrameProps> = ({
 
   const handleMintSuccess = (result: any) => {
     console.log('🎉 NFT minted successfully!', result);
-    setShowMintCard(false);
+    
+    // Show success message
+    alert(`🎉 Charm NFT Minted Successfully!\n\nTransaction: ${result.transaction?.hash || 'N/A'}\n\nToken ID: ${result.nft?.tokenId || 'N/A'}\n\nView on explorer: ${result.explorer || 'N/A'}`);
+    
+    // Don't hide the card immediately - let user see the success state
+    setTimeout(() => {
+      setShowMintCard(false);
+    }, 3000); // Hide after 3 seconds
     
     // You can add additional success handling here
     // For example, update user state, analytics, etc.

@@ -74,18 +74,18 @@ export const NotificationsFrame = ({
               >
                 <div className="flex items-center gap-3 mb-3">
                   <Image
-                    src={request.fromProfile.pfp_url || '/images/icon.png'}
-                    alt={request.fromProfile.display_name}
+                    src={request.fromProfile?.pfp_url || '/images/icon.png'}
+                    alt={request.fromProfile?.display_name || 'User'}
                     width={48}
                     height={48}
                     className="w-12 h-12 rounded-full object-cover border-2 border-white shadow"
                   />
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">
-                      {request.fromProfile.display_name}
+                      {request.fromProfile?.display_name || 'Someone'}
                     </p>
                     <p className="text-sm text-gray-500">
-                      @{request.fromProfile.username}
+                      @{request.fromProfile?.username || 'unknown'}
                     </p>
                   </div>
                   <span className="text-xs text-gray-400">
@@ -146,8 +146,8 @@ export const NotificationsFrame = ({
               >
                 <div className="flex items-center gap-3">
                   <Image
-                    src={notification.fromProfile.pfp_url || '/images/icon.png'}
-                    alt={notification.fromProfile.display_name}
+                    src={notification.fromProfile?.pfp_url || '/images/icon.png'}
+                    alt={notification.fromProfile?.display_name || 'User'}
                     width={40}
                     height={40}
                     className="w-10 h-10 rounded-full object-cover border-2 border-white shadow"

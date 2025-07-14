@@ -94,19 +94,29 @@ export const useCharmCaster = (currentUserFid?: number) => {
 
   // Fetch user's notifications
   const fetchNotifications = useCallback(async () => {
-    if (!currentUserFid) return;
+    if (!currentUserFid) {
+      console.log('🔍 fetchNotifications: No currentUserFid');
+      return;
+    }
+    
+    console.log('🔍 fetchNotifications: Fetching for FID:', currentUserFid);
     
     try {
       const response = await fetch(`/api/notifications/${currentUserFid}`);
+      console.log('🔍 fetchNotifications: Response status:', response.status);
+      
       if (response.ok) {
         const notifications = await response.json();
+        console.log('🔍 fetchNotifications: Received notifications:', notifications);
         setMatchState(prev => ({
           ...prev,
           notifications: notifications || []
         }));
+      } else {
+        console.error('🔍 fetchNotifications: Response not ok:', response.status);
       }
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error("🔍 fetchNotifications: Error:", error);
     }
   }, [currentUserFid]);
 

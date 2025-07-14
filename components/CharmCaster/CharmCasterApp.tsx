@@ -10,7 +10,8 @@ import ProfileFrame from "./ProfileFrame";
 import MatchFrame from "./MatchFrame";
 import EnhancedMatchFrame from "./EnhancedMatchFrame";
 import { NotificationsFrame } from "./NotificationsFrame";
-import { Match } from "@/types/charm-caster";
+import DevelopmentControls from "./DevelopmentControls";
+import { Match, CharmProfile } from "@/types/charm-caster";
 import { motion, AnimatePresence } from "framer-motion";
 
 type AppState = "welcome" | "sign-in" | "browsing" | "match" | "no-more-profiles" | "notifications";
@@ -19,6 +20,7 @@ export default function CharmCasterApp() {
   const [appState, setAppState] = useState<AppState>("welcome");
   const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
   const [useEnhancedMatch, setUseEnhancedMatch] = useState(true); // Toggle for enhanced match frame
+  const [lastLikedProfile, setLastLikedProfile] = useState<any>(null); // Track last liked profile for simulation
   
   const { context, isMiniAppReady } = useMiniApp();
   const { address, isConnected } = useAccount();
@@ -61,15 +63,19 @@ export default function CharmCasterApp() {
   } = useCharmCaster(currentUserFid);
 
   // Debug logging
-  console.log("CharmCasterApp state:", {
+  console.log("🔍 CharmCasterApp state:", {
     appState,
     currentUserFid,
     isConnected,
+    connectedWalletAddress: address,
     isSignedIn,
     isMiniAppReady,
     currentProfile: currentProfile?.display_name || "None",
+    currentMatch: currentMatch?.id || "None",
     hasMoreProfiles,
     matchesCount: matches.length,
+    notificationsCount: notifications.length,
+    unreadNotificationsCount: notifications.filter(n => !n.read).length,
     profilesLoading,
     profilesError
   });
@@ -114,6 +120,9 @@ export default function CharmCasterApp() {
     }
     
     try {
+      // Remember who we liked for simulation
+      setLastLikedProfile(currentProfile);
+      
       const match = await matchProfile(currentProfile);
       
       if (match) {
@@ -203,6 +212,144 @@ export default function CharmCasterApp() {
     fetchMatchRequests();
   };
 
+  const handleSimulateMatch = async (profile: any) => {
+    console.log('🎯 Starting match simulation for:', profile.display_name);
+    
+    try {
+      const response = await fetch('/api/simulate-match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user1Fid: currentUserFid,
+          user2Fid: profile.fid,
+          user2Profile: profile
+        }),
+      });
+
+      console.log('🌐 Simulate match response status:', response.status);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🎯 Match simulation result:', result);
+        
+        alert(`🎉 Simulating ${profile.display_name} matching back! Check notifications in a moment.`);
+        
+        // Refresh notifications and matches after a short delay
+        setTimeout(() => {
+          console.log('🔄 Refreshing notifications and matches...');
+          fetchNotifications();
+          fetchMatchRequests();
+          
+          // Also check if we should show match state
+          if (lastLikedProfile) {
+            console.log('🎉 Creating match state for:', lastLikedProfile.display_name);
+            const mockMatch: Match = {
+              id: `auto_match_${Date.now()}`,
+              user1Fid: currentUserFid || 0,
+              user2Fid: lastLikedProfile.fid,
+              user1Profile: {
+                fid: currentUserFid || 0,
+                display_name: 'Test User',
+                username: 'testuser',
+                pfp_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
+                bio: 'Test user for development',
+                follower_count: 100,
+                following_count: 50
+              },
+              user2Profile: lastLikedProfile,
+              createdAt: new Date(),
+              onChain: false
+            };
+            
+            setCurrentMatch(mockMatch);
+            setAppState("match");
+          }
+        }, 2000);
+        
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to simulate match:', response.status, errorText);
+        alert(`Failed to simulate match: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ Error simulating match:', error);
+      alert(`Error simulating match: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Force match state for NFT testing
+  const handleForceMatchState = (profile: CharmProfile) => {
+    console.log('🚀 Forcing match state for NFT testing with:', profile.display_name);
+    console.log('🔍 Current app state before:', appState);
+    console.log('🔍 Current match before:', currentMatch);
+    
+    // Create a mock match with proper structure
+    const mockMatch: Match = {
+      id: `test_match_${Date.now()}`,
+      user1Fid: currentUserFid || 0,
+      user2Fid: profile.fid,
+      user1Profile: {
+        fid: currentUserFid || 0,
+        display_name: 'Test User',
+        username: 'testuser',
+        pfp_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
+        bio: 'Test user for development',
+        follower_count: 100,
+        following_count: 50
+      },
+      user2Profile: profile,
+      createdAt: new Date(),
+      onChain: false
+    };
+    
+    console.log('🔍 Mock match created:', mockMatch);
+    
+    setCurrentMatch(mockMatch);
+    setAppState("match");
+    
+    console.log('🔍 App state should now be: match');
+    
+    alert(`🎉 Match state forced! Now you can test NFT minting with ${profile.display_name}`);
+  };
+
+  // Test NFT minting directly
+  const handleTestNFTMint = async () => {
+    if (!address) {
+      alert('❌ No wallet connected');
+      return;
+    }
+
+    console.log('🎨 Testing NFT mint directly to:', address);
+    
+    try {
+      const response = await fetch('/api/mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: address,
+          tokenURI: 'https://nftstorage.link/ipfs/bafkreicuve4f4oa475tezmklkyl7r23wxswv3l2uy6k5bg3nkmw5wbprp4'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Direct NFT mint successful!', result);
+        alert(`🎉 NFT minted successfully!\n\nTransaction: ${result.transaction?.hash}\n\nView: ${result.explorer}`);
+      } else {
+        console.error('❌ Direct NFT mint failed:', result);
+        alert(`❌ NFT mint failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error testing NFT mint:', error);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   // Get unread notifications count
   const unreadCount = notifications.filter(n => !n.read).length + 
                      matchRequests.filter(r => r.status === 'pending').length;
@@ -210,6 +357,15 @@ export default function CharmCasterApp() {
   // Render based on current state
   return (
     <div className="min-h-screen">
+      {/* Development Controls */}
+      <DevelopmentControls 
+        onSimulateMatch={handleSimulateMatch}
+        onForceMatchState={handleForceMatchState}
+        onTestNFTMint={handleTestNFTMint}
+        lastLikedProfile={lastLikedProfile}
+        walletAddress={address || ''}
+      />
+      
       <AnimatePresence mode="wait">
         {appState === "welcome" && (
           <motion.div
