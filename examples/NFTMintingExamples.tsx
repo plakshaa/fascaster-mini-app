@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
-import MintNFTModal from './components/CharmCaster/MintNFTModal';
-import MintNFTCard from './components/CharmCaster/MintNFTCard';
-import EnhancedMatchFrame from './components/CharmCaster/EnhancedMatchFrame';
+import MintNFTModal from '../components/CharmCaster/MintNFTModal';
+import { MintNFTCard } from '../components/CharmCaster/MintNFTCard';
+import { EnhancedMatchFrame } from '../components/CharmCaster/EnhancedMatchFrame';
 
 // Example 1: Using the Modal Version
 export function MatchPageWithModal() {

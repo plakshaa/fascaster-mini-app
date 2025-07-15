@@ -6,7 +6,7 @@ import { CharmProfile } from '@/types/charm-caster';
 interface DevelopmentControlsProps {
   onSimulateMatch: (profile: CharmProfile) => void;
   onForceMatchState: (profile: CharmProfile) => void;
-  onTestNFTMint: () => void;
+  onTestNFTMint?: () => void;
   lastLikedProfile: CharmProfile | null;
   walletAddress: string;
 }
@@ -106,12 +106,14 @@ export default function DevelopmentControls({
               🔍 Debug Redis Data
             </button>
             
-            <button
-              onClick={onTestNFTMint}
-              className="w-full px-3 py-2 rounded text-sm font-medium bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              🎨 Test NFT Mint Directly
-            </button>
+            {onTestNFTMint && (
+              <button
+                onClick={onTestNFTMint}
+                className="w-full px-3 py-2 rounded text-sm font-medium bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                🎨 Test NFT Mint Directly
+              </button>
+            )}
             
             <div className="text-xs text-yellow-600">
               <p>💡 This simulates {lastLikedProfile?.display_name || 'the user'} matching back with you!</p>

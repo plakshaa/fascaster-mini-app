@@ -314,42 +314,6 @@ export default function CharmCasterApp() {
     alert(`🎉 Match state forced! Now you can test NFT minting with ${profile.display_name}`);
   };
 
-  // Test NFT minting directly
-  const handleTestNFTMint = async () => {
-    if (!address) {
-      alert('❌ No wallet connected');
-      return;
-    }
-
-    console.log('🎨 Testing NFT mint directly to:', address);
-    
-    try {
-      const response = await fetch('/api/mint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: address,
-          tokenURI: 'https://nftstorage.link/ipfs/bafkreicuve4f4oa475tezmklkyl7r23wxswv3l2uy6k5bg3nkmw5wbprp4'
-        })
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        console.log('✅ Direct NFT mint successful!', result);
-        alert(`🎉 NFT minted successfully!\n\nTransaction: ${result.transaction?.hash}\n\nView: ${result.explorer}`);
-      } else {
-        console.error('❌ Direct NFT mint failed:', result);
-        alert(`❌ NFT mint failed: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('❌ Error testing NFT mint:', error);
-      alert(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
   // Get unread notifications count
   const unreadCount = notifications.filter(n => !n.read).length + 
                      matchRequests.filter(r => r.status === 'pending').length;
@@ -361,7 +325,6 @@ export default function CharmCasterApp() {
       <DevelopmentControls 
         onSimulateMatch={handleSimulateMatch}
         onForceMatchState={handleForceMatchState}
-        onTestNFTMint={handleTestNFTMint}
         lastLikedProfile={lastLikedProfile}
         walletAddress={address || ''}
       />
