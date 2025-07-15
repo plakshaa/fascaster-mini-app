@@ -51,12 +51,12 @@ export function MatchPageWithModal() {
 export function MatchPageWithCard() {
   const { address } = useAccount();
   
-  const handleMintSuccess = (result) => {
+  const handleMintSuccess = (result: any) => {
     console.log('🎉 NFT minted!', result);
     // Handle success - maybe navigate somewhere or update state
   };
 
-  const handleMintError = (error) => {
+  const handleMintError = (error: string) => {
     console.error('❌ Mint failed:', error);
     // Handle error - maybe show retry option
   };
@@ -139,11 +139,11 @@ export function IntegrateWithExistingApp() {
       {showNFTMinting && (
         <MintNFTCard
           userWalletAddress={address || ''}
-          onMintSuccess={(result) => {
+          onMintSuccess={(result: any) => {
             console.log('NFT minted!', result);
             setShowNFTMinting(false);
           }}
-          onMintError={(error) => {
+          onMintError={(error: string) => {
             console.error('Mint failed:', error);
           }}
         />
